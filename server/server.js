@@ -11,16 +11,25 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['https://assigntotask.vercel.app', 'http://localhost:5173'],
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    // dynamically allow any origin for testing/vercel preview branches
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Upload folder setup
-const uploadDir = path.join(__dirname, process.env.UPLOAD_PATH || './uploads');
+const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, process.env.UPLOAD_PATH || './uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  } catch (err) {
+    console.error('Failed to create upload directory:', err);
+  }
 }
 app.use('/uploads', express.static(uploadDir));
 
